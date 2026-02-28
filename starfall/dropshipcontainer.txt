@@ -1,0 +1,16 @@
+--@name dropshipContainer
+--@author .alynn
+--@server
+--@model models/hunter/plates/plate3x8.mdl
+
+--chip():setPos(chip():getPos()+Vector(0,0,250))
+chip():setColor(Color(255,255,255,0))
+--chip():setCollisionGroup(COLLISION_GROUP.WORLD)
+
+cargo = hologram.create(chip():localToWorld(Vector(0,60,-70)), chip():localToWorldAngles(Angle(0,90,0)), "models/combine_dropship_container.mdl", Vector(1))
+cargo:setParent(chip())
+
+--doChair
+---23.212, 45.747, -71.395
+--models/hunter/plates/plate05x4.mdl
+prop.create(chip():localToWorld(Vector(-23.212, 45.747, -71.395)), chip():localToWorldAngles(Angle()), "models/hunter/plates/plate05x4.mdl", false)

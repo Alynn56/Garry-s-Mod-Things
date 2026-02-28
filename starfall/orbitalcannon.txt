@@ -1,0 +1,190 @@
+--@name orbitalCannon
+--@author .lynn
+--@server
+
+-- 500 holos max
+
+blastRingModel = "models/holograms/cube.mdl"
+blastRingMaterial = "models/effects/splode1_sheet"
+amountofRings = 16
+blastCenterModel = "models/holograms/icosphere2.mdl"
+blastCenterMaterial = "models/effects/splode1_sheet"
+shockwaveModel = "models/holograms/icosphere2.mdl"
+shockwaveMaterial = "sprites/heatwave"
+lineHoloModel = "models/hunter/tubes/tube4x4x16.mdl"
+lineHoloModelLength = 760
+lineHoloMaterial = "models/debug/debugwhite"
+shockwaveSound = "ambient/explosions/exp2.wav"
+
+holoParticles = {}
+
+originPos = chip():getPos() + Vector(10000,10000,10000)
+targetPos = chip():getPos()
+
+function makeHoloParticle(pos)
+    for i=1, amountofRings do
+        local ang1 = math.random(-180,180)
+        local ang2 = math.random(-180,180)
+        local ang3 = math.random(-180,180)
+        angRandom = Angle(ang1,ang2,ang3)
+        local dir = Vector(math.sin(i*(360/amountofRings)),math.cos(i*(360/amountofRings)),0)
+        local holo = hologram.create(pos+dir, angRandom, blastRingModel, Vector(1,1,1))
+        holo:setMaterial(blastRingMaterial)
+        holo:setColor(Color(math.random(200,255),math.random(75,150),0,math.random(200,255)))
+        table.insert(holoParticles, 0, {holo,dir,holo:getColor(),false})
+    end
+    --[[
+    for i=1, amountofRings*2 do
+        local ang1 = math.random(-180,180)
+        local ang2 = math.random(-180,180)
+        local ang3 = math.random(-180,180)
+        angRandom = Angle(ang1,ang2,ang3)
+        local dir = Vector(math.sin(i*(360/(amountofRings*2))),math.cos(i*(360/(amountofRings*2))),0)
+        local holo = hologram.create(pos+(dir*2), angRandom, blastRingModel, Vector(1,1,1))
+        holo:setMaterial(blastRingMaterial)
+        holo:setColor(Color(math.random(200,255),math.random(75,150),0,math.random(200,255)))
+        table.insert(holoParticles, 0, {holo,dir,holo:getColor(),true})
+    end
+    ]]
+end
+
+function doBlast(pos)
+    local ang1 = math.random(-180,180)
+    local ang2 = math.random(-180,180)
+    local ang3 = math.random(-180,180)
+    angRandom = Angle(ang2,ang3,ang1)
+    shockwave = hologram.create(pos, Angle(ang1,ang2,ang3), shockwaveModel, Vector(1,1,1))
+    shockwave:setMaterial(shockwaveMaterial)
+    shockwaveInner = hologram.create(pos, Angle(ang1,ang2,ang3), shockwaveModel, Vector(1,1,1))
+    shockwaveInner:setMaterial(shockwaveMaterial)
+    shockwaveInner:setCullMode(1)
+    blastCenter = hologram.create(pos, Angle(ang1,ang2,ang3), blastCenterModel, Vector(1,1,1))
+    blastCenter:setMaterial(blastCenterMaterial)
+    blastCenter:emitSound("ambient/levels/citadel/zapper_warmup1.wav",125,75,25)
+    blastCenter:emitSound("ambient/energy/force_field_loop1.wav",125,50,25)
+    timer.simple(2.5,function()
+        blastCenter:emitSound("ambient/energy/power_off1.wav",125,50,25)
+        blastCenter:emitSound("ambient/energy/powerdown2.wav",125,50,25)
+    end)
+    timer.simple(3,function()
+        blastCenter:stopSound("ambient/energy/force_field_loop1.wav")
+    end)
+end
+
+hook.add("Tick", "", function() 
+    if isValid(shockwave) then
+        if shockwave:getScale():getLength() < Vector(50,50,50):getLength() then
+            shockwave:setScale(shockwave:getScale()*1.5)
+        else
+            shockwave:setScale(shockwave:getScale()*1.1)
+        end
+        shockwaveInner:setScale(shockwave:getScale())
+        if shockwave:getScale():getLength() > Vector(10000,10000,10000):getLength() then
+            shockwave:remove()
+            shockwaveInner:remove()
+        end
+    end
+    if isValid(blastCenter) then
+        blastCenter:setAngles(blastCenter:getAngles()*1.0025)
+        if blastCenter:getScale():getLength() < Vector(50,50,50):getLength() then
+            blastCenter:setScale(blastCenter:getScale()*1.5)
+        else
+            blastCenter:setScale(blastCenter:getScale()*1.01)
+        end
+        local vecCompare = math.clamp(1-blastCenter:getScale():getLength()/Vector(500,500,500):getLength(),0,1) -- 1 > 0
+        local invVecCompare = 1-vecCompare -- 0 > 1
+        blastCenter:setColor(Color(255*vecCompare,100*vecCompare,0*vecCompare,255*vecCompare))
+        if blastCenter:getScale():getLength() > Vector(5000,5000,5000):getLength() then
+            blastCenter:remove()
+        end
+    end
+    for k,v in pairs(holoParticles) do
+        if !v[1]:isValid() then continue end
+        local holo = v[1]
+        local dir = v[2]
+        local clr = v[3]
+        if !v[4] then
+            if holo:getScale():getLength() < Vector(50,50,50):getLength() then
+                holo:setScale(holo:getScale()*1.25)
+            else
+                holo:setScale(holo:getScale()*1.0025)
+            end
+        else
+            if holo:getScale():getLength() < Vector(50,50,50):getLength() then
+                holo:setScale(holo:getScale()*1.25)
+            else
+                holo:setScale(holo:getScale()*1.0005)
+            end
+        end
+        local vecCompare = holo:getScale():getLength()/Vector(250,250,250):getLength() -- 0 > 1
+        if v[4] then
+            vecCompare = holo:getScale():getLength()/Vector(75,75,75):getLength() -- 0 > 1
+        end
+        local invVecCompare = 1-vecCompare -- 1 > 0
+        holo:setAngles(holo:getAngles()*1.0025)
+        if !v[4] then
+            holo:setPos(holo:getPos() + (dir*10))
+        else
+            holo:setPos(holo:getPos() + (dir*10))
+        end
+        holo:setColor(Color(clr[1]*invVecCompare,clr[2]*invVecCompare,clr[3]*invVecCompare,255*invVecCompare))
+        if vecCompare > 1 then
+            holo:remove()
+        end
+    end
+    if isValid(lineHolo) then
+        lineHolo:setScale( Vector(math.rand(0.05,0.25),math.rand(0.05,0.25),lineHolo:getScale()[3]) )
+        lineGhostHolo:setScale( Vector(math.rand(0.25,0.5),math.rand(0.25,0.5),lineGhostHolo:getScale()[3]) )
+        
+        local ghostAlpha = lineGhostHolo:getColor()[4]
+        if ghostAlpha > 0 then
+            lineGhostHolo:setColor(Color(255,255,255,ghostAlpha-0.05))
+        else
+            local setPos = (targetPos-lineHolo:getPos())
+            setPos:normalize()
+            lineHolo:setPos(lineHolo:getPos()+(setPos*200))
+            lineHolo:setScale(Vector(lineHolo:getScale()[1],lineHolo:getScale()[2],lineHolo:getScale()[3]-((1/lineHoloModelLength)*200)))
+            if lineHolo:getScale()[3] < 0.1 then
+                lineHolo:remove()
+                lineGhostHolo:remove()
+            end
+        end
+    end
+end)
+
+function doLine(pos)
+    local diff = (originPos+pos)/2
+    local aimAngle = (originPos-pos):getAngle()
+    
+    lineHolo = hologram.create(diff, aimAngle+Angle(90,0,0), lineHoloModel, Vector(0.25,0.25,(1/lineHoloModelLength)*originPos:getDistance(pos)))
+    lineHolo:setMaterial(lineHoloMaterial)
+    lineHolo:suppressEngineLighting(true)
+    lineGhostHolo = hologram.create(diff, aimAngle+Angle(90,0,0), lineHoloModel, Vector(0.5,0.5,(1/lineHoloModelLength)*originPos:getDistance(pos)))
+    lineGhostHolo:setMaterial(lineHoloMaterial)
+    lineGhostHolo:suppressEngineLighting(true)
+    lineGhostHolo:setColor(Color(255,255,255,100))
+    --hologram.create(diff,Angle(),blastCenterModel)
+    --hologram.create(originPos,Angle(),blastCenterModel)
+end
+
+function doShockwaveSound(ply,pos)
+    local dist = ply:getPos():getDistance(pos)
+    local distCheck = math.max(1-(dist/12000),0)
+    timer.simple(dist/17500, function()
+        local holo = hologram.create(ply:getPos(), Angle(), "models/holograms/hq_torus_thin.mdl", Vector(0.01,0.01,0.01))
+        holo:emitSound(shockwaveSound,75*distCheck+25,100)
+        timer.simple(sound.duration(shockwaveSound),function()
+            holo:remove()
+        end)
+    end)
+end
+
+for k,v in pairs(find.allPlayers(function(ent) return ent != owner() end)) do
+    doShockwaveSound(v,targetPos)
+end
+doShockwaveSound(owner(),targetPos)
+doLine(targetPos)
+doBlast(targetPos)
+makeHoloParticle(targetPos)
+
+--doBlast(chip():getPos())

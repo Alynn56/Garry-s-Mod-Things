@@ -1,0 +1,240 @@
+--@name dropshipCombine
+--@author .alynn
+--@shared
+--@ model models/hunter/blocks/cube6x8x1.mdl
+--@include https://raw.githubusercontent.com/Jacbo1/Public-Starfall/main/SafeNet/safeNet.lua as SafeNet
+local net = require("SafeNet")
+
+alwaysOn = false --config
+speedMult = 1000 --1000 default
+
+-- dropship code from Airwatch Addon
+-- https://steamcommunity.com/sharedfiles/filedetails/?id=741788352
+
+if SERVER then
+    
+chip():setPos(chip():getPos()+Vector(0,0,250))
+    
+dropshipController = prop.createCustom(chip():getPos(), chip():getAngles(), {{
+    Vector(-142,-190, -24), Vector(142, -190, -24), Vector(142, 190, -24), Vector(-142, 190, -24),
+    Vector(-142,-190, 24), Vector(142, -190, 24), Vector(142, 190, 24), Vector(-142, 190, 24),
+}}, false)
+dropshipController:getPhysicsObject():setMass(500000)
+dropshipController:setColor(Color(255,255,255,0))
+chip():setColor(Color(255,255,255,0))
+chip():setParent(dropshipController)
+
+dropship = hologram.create(dropshipController:localToWorld(Vector(0,100,-100)), dropshipController:getAngles()+Angle(0,90,0), "models/Combine_dropship.mdl")
+dropship:setParent(dropshipController)
+
+pod = prop.createSeat(dropshipController:localToWorld(Vector(0,100,50)), dropshipController:getAngles(), "models/nova/airboat_seat.mdl", true)
+pod:setCollisionGroup(COLLISION_GROUP.WORLD)
+pod:setParent(dropshipController)
+
+hook.add("ClientInitialized", "", function(ply)
+    net.start("dropshipInit")
+        net.writeEntity(dropship)
+        net.writeEntity(pod)
+    net.send(ply)
+end)
+
+hook.add("PlayerEnteredVehicle", "", function(ply, vehicle, num) 
+    if vehicle != pod then return end
+    pod:setColor(Color(255,255,255,0))
+    pod:setThirdPersonMode(true)
+    pod:setCameraDistance(10)
+    
+    if ply == owner() then
+        ply:setColor(Color(255,255,255,0))
+    end
+    driver = ply
+    
+    dropshipController:stopSound("npc/combine_gunship/dropship_onground_loop1.wav")
+    dropshipController:stopSound("npc/combine_gunship/engine_rotor_loop1.wav")
+    timer.simple(0.1,function()
+        dropshipController:emitSound("npc/combine_gunship/dropship_onground_loop1.wav",75,nil,1)
+        dropshipController:emitSound("npc/combine_gunship/engine_rotor_loop1.wav",75,nil,1)
+    end)
+    
+    dropship:setAnimation("cargo_idle")
+end)
+
+hook.add("playerLeaveVehicle", "", function(ply, vehicle, num) 
+    if vehicle != pod then return end
+    pod:setColor(Color(255,255,255,255))
+    driver = nil
+    
+    if ply == owner() then
+        ply:setColor(Color(255,255,255,255))
+    end
+    
+    if !alwaysOn then
+        dropshipController:stopSound("npc/combine_gunship/dropship_onground_loop1.wav")
+        dropshipController:stopSound("npc/combine_gunship/engine_rotor_loop1.wav")
+        dropship:setAnimation("ragdoll")
+    end
+end)
+
+dropshipController.storedPos = Vector()
+dropshipController.storedVel = Vector()
+dropshipController.storedPitch = 0
+
+hook.add("Think", "", function()
+    if !isValid(dropshipController) then return end
+    local vel = dropshipController:getVelocity()
+    local localVel, _ = worldToLocal(vel, Angle(), Vector(), dropshipController:getAngles())
+    local delta = game.getTickInterval()
+    
+    if isValid(driver) or alwaysOn then -- pod:getDriver() since driver doesnt update
+        local accel = dropship:getPose("cargo_body_accel")
+        accel = math.approach(accel, math.remap(localVel.y, 0, 1600, -0.1, 1), 0.04)
+        dropship:setPose("cargo_body_accel",accel)
+        
+        local sway = math.remap(-localVel.x, -800, 800, -1, 1)
+        dropship:setPose("cargo_body_sway", -sway)
+    else
+        dropship:setPose("cargo_body_accel",0)
+        dropship:setPose("cargo_body_sway",0)
+    end
+    
+    local desiredPitch = -(dropshipController.storedVel:dot(dropshipController:getForward()) - vel:dot(dropshipController:getForward())) * 3
+    local desiredRoll = -(dropshipController.storedVel:dot(dropshipController:getRight()) - vel:dot(dropshipController:getRight())) * 3
+    local pLerp = 1 - math.sin(delta * math.pi * 0.5)
+    desiredPitch = math.lerp(pLerp * delta + delta, dropshipController.storedPitch, desiredPitch)
+    
+    dropshipController.storedPitch = desiredPitch
+    dropshipController.storedVel = vel
+    
+    local desiredPos = dropshipController:getPos()
+    local desiredYaw = dropshipController:getAngles().y
+    
+    if isValid(driver) then
+        local addPos = Vector(0, 0, 0)
+
+        if driver:keyDown(IN_KEY.FORWARD) then
+            addPos.y = 0.7
+        elseif driver:keyDown(IN_KEY.BACK) then
+            addPos.y = -0.2
+        end
+        
+        if driver:keyDown(IN_KEY.MOVELEFT) then
+            addPos.x = -0.2
+        elseif driver:keyDown(IN_KEY.MOVERIGHT) then
+            addPos.x = 0.2
+        end
+        
+        if driver:keyDown(IN_KEY.JUMP) then
+            addPos.z = 0.3
+        elseif driver:keyDown(IN_KEY.SPEED) then
+            addPos.z = -0.3
+        end
+        
+        local ang = dropshipController:getAngles()
+        ang.r = 0
+        ang.p = 0
+        
+        if driver:keyDown(IN_KEY.WALK) then
+            desiredYaw = dropshipController.storedYaw
+        else
+            desiredYaw = dropshipController:worldToLocalAngles(driver:getEyeAngles()).y-90
+        end
+        
+        if driver:keyDown(IN_KEY.WALK) then
+            addPos:rotate(Angle(0, dropshipController.storedYaw, 0))
+        else
+            addPos:rotate(Angle(0, desiredYaw, 0))
+            dropshipController.storedYaw = desiredYaw
+        end
+        
+        addPos:mul(speedMult)
+        
+        local dist = math.clamp(dropshipController.storedPos:getDistance(addPos), 0, speedMult)
+        local time = math.remap(dist, 0, speedMult, 0, 1)
+        
+        local lerp = 1 - math.sin(time * math.pi * 0.5)
+        
+        addPos = math.lerpVector(lerp * delta + (delta * 0.4), dropshipController.storedPos, addPos)
+        
+        dropshipController.storedPos = addPos
+        
+        desiredPos = desiredPos + addPos
+    else
+        dropshipController.storedPos = Vector(0,0,0)
+    end
+
+    local randPos = Vector(math.sin(math.cos(timer.curtime())) * 10, math.sin(math.sin(timer.curtime())) * 10, 0)
+    randPos:rotate(dropshipController:getAngles())
+    
+    desiredPos = desiredPos + randPos
+    
+    local move = {}
+        move.secondstoarrive    = 0.5
+        move.pos                = desiredPos
+        move.angle              = Angle(desiredPitch, desiredYaw, desiredRoll)
+        move.maxangular         = 12000
+        move.maxangulardamp     = 10000
+        move.maxspeed           = 12000
+        move.maxspeeddamp       = 10000
+        move.dampfactor         = 0.8
+        move.teleportdistance   = 0
+        move.deltatime          = delta
+    
+    if isValid(driver) or alwaysOn then
+        dropshipController:setCustomPropShadowForce(move)
+    else
+        dropshipController.storedPos = Vector(0, 0, 0)
+        local move = {}
+        move.secondstoarrive    = 1000000
+        move.pos                = Vector()
+        move.angle              = Angle()
+        move.maxangular         = 0
+        move.maxangulardamp     = 0
+        move.maxspeed           = 0
+        move.maxspeeddamp       = 0
+        move.dampfactor         = 0
+        move.teleportdistance   = 0
+        move.deltatime          = 0
+        dropshipController:setCustomPropShadowForce(move)
+    end
+    
+end)
+
+else
+    dropship = nil
+    pod = nil
+    isDriver = false
+    
+    net.receive("dropshipInit",function()
+        dropship = net.readEntity()
+        pod = net.readEntity()
+    end)
+    
+    hook.add("tick", "", function()
+        if player():inVehicle() and player():getVehicle() == pod then
+            if !isDriver then
+                enableHud(player(), true)
+                isDriver = true -- KEEP THIS AT THE END
+            end
+        else
+            if isDriver then
+                enableHud(player(), false)
+                isDriver = false
+            end
+        end
+    end)
+    
+    hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+        if !isDriver then return end
+        local podPos = pod:localToWorld(Vector(0,-500,350))
+        local eyeAng = player():getEyeAngles()
+        local tab = {
+            ["origin"] = podPos,
+            --["pos"] = podPos,
+            ["angles"] = eyeAng,
+            ["fov"] = fov,
+            ["znear"] = znear, 
+            ["zfar"] = zfar
+        }
+        return tab
+    end)
+end

@@ -1,0 +1,373 @@
+--@name Synth
+--@author .alynn
+--@shared
+
+keys = {}
+empty = {}
+
+--instrument = "gmodtower/lobby/instruments/piano/a22.wav"
+instrument = "instruments/pianoc.wav"
+--gmodtower/lobby/instruments/piano/a22.wav
+filter = 0
+
+stop = true
+
+
+PitchChange = 2
+
+allowedKeys = {
+    ["1"] = true,
+    ["2"] = true,
+    ["3"] = true,
+    ["4"] = true,
+    ["5"] = true,
+    ["6"] = true,
+    ["7"] = true,
+    ["8"] = true,
+    ["9"] = true,
+    ["0"] = true,
+    ["Q"] = true,
+    ["W"] = true,
+    ["E"] = true,
+    ["R"] = true,
+    ["T"] = true,
+    ["Y"] = true,
+    ["U"] = true,
+    ["I"] = true,
+    ["O"] = true,
+    ["P"] = true,
+    ["A"] = true,
+    ["S"] = true,
+    ["D"] = true,
+    ["F"] = true,
+    ["G"] = true,
+    ["H"] = true,
+    ["J"] = true,
+    ["K"] = true,
+    ["L"] = true,
+    ["Z"] = true,
+    ["X"] = true,
+    ["C"] = true,
+    ["V"] = true,
+    ["B"] = true,
+    ["N"] = true,
+    ["M"] = true,
+    ["SHIFT"] = true,
+    ["UPARROW"] = true,
+    ["LEFTARROW"] = true,
+    ["RIGHTARROW"] = true,
+    ["DOWNARROW"] = true
+}
+upKeys = {
+    ["1"] = true,
+    ["2"] = true,
+    ["4"] = true,
+    ["5"] = true,
+    ["6"] = true,
+    ["8"] = true,
+    ["9"] = true,
+    ["q"] = true,
+    ["w"] = true,
+    ["e"] = true,
+    ["t"] = true,
+    ["y"] = true,
+    ["i"] = true,
+    ["o"] = true,
+    ["p"] = true,
+    ["s"] = true,
+    ["d"] = true,
+    ["g"] = true,
+    ["h"] = true,
+    ["j"] = true,
+    ["l"] = true,
+    ["z"] = true,
+    ["c"] = true,
+    ["v"] = true,
+    ["b"] = true
+}
+
+S0 = PitchChange*1
+S1 = PitchChange*1.059463
+S2 = PitchChange*1.122462
+S3 = PitchChange*1.189207
+S4 = PitchChange*1.259921
+S5 = PitchChange*1.334840
+S6 = PitchChange*1.414214
+S7 = PitchChange*1.498307
+S8 = PitchChange*1.587401
+S9 = PitchChange*1.681793
+S10 = PitchChange*1.781797
+S11 = PitchChange*1.887749
+S12 = PitchChange*2
+
+O1 = 1+1*-0.9375
+O2 = 1+1*-0.875
+O3 = 1+1*-0.75
+O4 = 1+1*-0.50
+O5 = 1
+O6 = 2
+--entity():emitSound(Instrument,SL,100*S0*O1)
+
+keyLookup = {
+    ["1"] = 100*S0*O1,
+    ["2"] = 100*S2*O1,
+    ["3"] = 100*S4*O1,
+    ["4"] = 100*S5*O1,
+    ["5"] = 100*S7*O1,
+    ["6"] = 100*S9*O1,
+    ["7"] = 100*S11*O1,
+    
+    ["8"] = 100*S0*O2,
+    ["9"] = 100*S2*O2,
+    ["0"] = 100*S4*O2,
+    ["Q"] = 100*S5*O2,
+    ["W"] = 100*S7*O2,
+    ["E"] = 100*S9*O2,
+    ["R"] = 100*S11*O2,
+    
+    ["T"] = 100*S0*O3,
+    ["Y"] = 100*S2*O3,
+    ["U"] = 100*S4*O3,
+    ["I"] = 100*S5*O3,
+    ["O"] = 100*S7*O3,
+    ["P"] = 100*S9*O3,
+    ["A"] = 100*S11*O3,
+    
+    ["S"] = 100*S0*O4,
+    ["D"] = 100*S2*O4,
+    ["F"] = 100*S4*O4,
+    ["G"] = 100*S5*O4,
+    ["H"] = 100*S7*O4,
+    ["J"] = 100*S9*O4,
+    ["K"] = 100*S11*O4,
+    
+    ["L"] = 100*S0*O5,
+    ["Z"] = 100*S2*O5,
+    ["X"] = 100*S4*O5,
+    ["C"] = 100*S5*O5,
+    ["V"] = 100*S7*O5,
+    ["B"] = 100*S9*O5,
+    ["N"] = 100*S11*O5,
+    
+    ["M"] = 100*S0*O6,
+    
+    ["SHIFT"] = 100*S1
+}
+keyShift = {
+    ["1"] = 100*S1*O1,
+    ["2"] = 100*S3*O1,
+    ["4"] = 100*S6*O1,
+    ["5"] = 100*S8*O1,
+    ["6"] = 100*S10*O1,
+    
+    ["8"] = 100*S1*O2,
+    ["9"] = 100*S3*O2,
+    ["Q"] = 100*S6*O2,
+    ["W"] = 100*S8*O2,
+    ["E"] = 100*S10*O2,
+    
+    ["T"] = 100*S1*O3,
+    ["Y"] = 100*S3*O3,
+    ["I"] = 100*S6*O3,
+    ["O"] = 100*S8*O3,
+    ["P"] = 100*S10*O3,
+    
+    ["S"] = 100*S1*O4,
+    ["D"] = 100*S3*O4,
+    ["G"] = 100*S6*O4,
+    ["H"] = 100*S8*O4,
+    ["J"] = 100*S10*O4,
+    
+    ["L"] = 100*S1*O5,
+    ["Z"] = 100*S3*O5,
+    ["C"] = 100*S6*O5,
+    ["V"] = 100*S8*O5,
+    ["B"] = 100*S10*O5,
+    
+    ["M"] = 100*S1*O6
+}
+
+if SERVER then
+--[[
+    for k,v in pairs(allowedKeys) do
+        sounds[k] = sound.create(chip(), instrument, filter)
+    end
+]]
+
+    
+    soundEntities = {
+        hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.1,0.1,0.1)),
+        hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.1,0.1,0.1)),
+        hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.1,0.1,0.1)),
+        hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.1,0.1,0.1)),
+        hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.1,0.1,0.1))
+    }
+    sounds = {
+        {sound.create(soundEntities[1], instrument)},
+        {sound.create(soundEntities[2], instrument)},
+        {sound.create(soundEntities[3], instrument)},
+        {sound.create(soundEntities[4], instrument)},
+        {sound.create(soundEntities[5], instrument)}
+    }
+    soundCount = 0
+    
+    soundsEmitted = {}
+    
+    net.receive("locked",function()
+        locked = net.readBool()
+    end)
+    net.receive("keys",function()
+        keys = net.readTable()
+        
+        if keys["LEFTARROW"] then
+            if LEFTARROW == 0 then
+                PitchChange = math.clamp(PitchChange - 1,0.5,4)
+                print("Octave set at:",PitchChange)
+            end
+            LEFTARROW = 1
+        else
+            LEFTARROW = 0
+        end
+        
+        if keys["RIGHTARROW"] then
+            if RIGHTARROW == 0 then
+                PitchChange = math.round(math.clamp(PitchChange + 0.9,1,4))
+                print("Octave set at:",PitchChange)
+            end
+            RIGHTARROW = 1
+        else
+            RIGHTARROW = 0
+        end
+        
+        if keys["SHIFT"] then
+            SHIFT = 1
+        else
+            SHIFT = 0
+        end
+
+        for k,v in pairs(soundsEmitted) do
+            if keys[v] == nil then
+                --print(v[2])
+                --printTable(sounds)
+                if v != nil then
+                    if stop then
+                        soundEntities[k]:stopSound(instrument)
+                    end
+                    soundsEmitted[k] = nil
+                end
+            end
+        end
+
+        for k,v in pairs(keys) do
+            if k != "SHIFT" and k != "UPARROW" and k != "LEFTARROW" and k != "RIGHTARROW" and k != "DOWNARROW" then
+                --if table.count(sounds) < 5 then
+                --if sounds[k] == nil then
+                if soundCount == 200 then
+                    soundCount = 0
+                end
+                
+                local keyuse = k
+                local used = false
+                
+                for k,v in pairs(soundsEmitted) do
+                        --print(v[2],keyuse)
+                    if v == keyuse then
+                        --print(v[2],keyuse)
+                        used = true
+                    end
+                end
+                
+                if !used then
+                    soundCount = soundCount + 1
+                    
+                    if soundEntities[soundCount] == nil then
+                        soundEntities[soundCount] = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.1,0.1,0.1))
+                    end
+                    soundsEmitted[soundCount] = k
+                    if keys["SHIFT"] then
+                        if keyShift[k] != nil then
+                            pitch = keyShift[k]
+                        else
+                            pitch = keyLookup[k]
+                        end
+                    else
+                        pitch = keyLookup[k]
+                    end
+                    
+                    soundEntities[soundCount]:emitSound(instrument, 75, pitch*PitchChange, 1, 0)
+                
+                    --sounds[soundCount][1]:stop()
+                    --sounds[soundCount][2] = k
+                    --sounds[soundCount][1]:play()
+                    --sounds[soundCount][1]:setDSP(filter)
+--[[
+                    if keys["SHIFT"] then
+                        if keyShift[k] != nil then
+                            sounds[soundCount][1]:setPitch(keyShift[k])
+                        else
+                            sounds[soundCount][1]:setPitch(keyLookup[k])
+                        end
+                    else
+                        sounds[soundCount][1]:setPitch(keyLookup[k])
+                    end
+]]
+                end
+                --print("created",sounds[k])
+                --end
+                --end
+            end
+        end
+    end)
+    
+else
+    if player() == owner() then
+        
+        enableHud(nil, true)
+        
+        hook.add("starfallUsed","",function(activator, used)
+            if activator == owner() then
+                input.lockControls(true)
+                locked = true
+                net.start("locked")
+                    net.writeBool(locked)
+                net.send()
+            end
+        end)
+        place = 0
+        hook.add("tick","",function()
+            if input.isControlLocked(owner()) == false then
+                if locked then
+                    locked = false
+                    net.start("locked")
+                        net.writeBool(locked)
+                    net.send()
+                    
+                end
+            end
+            if locked then
+                for k,v in pairs(KEY) do
+                    --159 entries
+                    place = place+1
+                    if place == 1 then
+                        table.empty(keys)
+                    end
+                    if allowedKeys[k] then
+                        if input.isKeyDown(v) then
+                            if keys[k] != v then
+                                keys[k] = v
+                            end
+                        else
+                            keys[k] = nil
+                        end
+                    end
+                    if place == 159 then
+                        place = 0
+                        net.start("keys")
+                            net.writeTable(keys)
+                        net.send()
+                    end
+                end
+            end
+        end)
+    end
+end

@@ -1,0 +1,187 @@
+--@name Infection
+--@author .alynn
+--@server
+
+thinkTime = 1
+
+infectMat = "models/grub_nugget/grub_nugget"
+infectColor = Color(150,100,0)
+
+--infectMat = "models/props_foliage/tree_deciduous_01a_trunk"
+--infectColor = Color(150,150,150)
+
+damage = false
+
+sporeSnd = {
+    ["move"] = {"npc/antlion_grub/agrub_alert1.wav","npc/antlion_grub/agrub_alert2.wav","npc/antlion_grub/agrub_alert3.wav"},
+    ["birth"] = {"npc/antlion/antlion_burst1.wav","npc/antlion/antlion_burst2.wav"},
+    ["eat"] = {"npc/antlion/digdown1.wav","npc/antlion/digdown1.wav"},
+    ["eatLayer"] = {"npc/barnacle/barnacle_digesting1.wav","npc/barnacle/barnacle_digesting2.wav"},
+    ["bite"] = {"npc/headcrab/headbite.wav","npc/headcrab/headbite.wav"},
+    ["pain"] = {"npc/antlion/pain1.wav","npc/antlion/pain2.wav"},
+    ["squish"] = {"npc/antlion_grub/agrub_squish1.wav","npc/antlion_grub/agrub_squish2.wav","npc/antlion_grub/agrub_squish3.wav"},
+    ["die"] = {"npc/antlion_grub/agrub_die1.wav","npc/antlion_grub/agrub_die2.wav"},
+}
+
+modelSize = {
+    "models/grub_nugget_large.mdl",
+    "models/magnusson_device.mdl",
+    "models/XQM/Rails/gumball_1.mdl",
+    "models/combine_helicopter/helicopter_bomb01.mdl",
+    "models/props_combine/combine_citadelwall_destroyed01.mdl",
+}
+
+--[[
+modelSize = {
+    "models/hunter/blocks/cube025x025x025.mdl",
+    "models/hunter/blocks/cube05x05x05.mdl",
+    "models/hunter/blocks/cube075x075x075.mdl",
+    "models/hunter/blocks/cube1x1x1.mdl",
+    "models/hunter/blocks/cube2x2x2.mdl",
+}
+]]
+
+spores = {
+    
+}
+
+infectedProps = {}
+infectedLookUp = {}
+
+function infect(spore)
+    
+end
+
+function createSpore(parent,size)
+    freeze = false
+    local sz = size or 1
+    if sz >= 5 then
+        freeze = true
+    end
+    local ent = prop.create(parent:getPos()+Vector(0,0,5), parent:getAngles(), modelSize[sz], freeze)
+    ent:setColor(infectColor)
+    ent:setMaterial(infectMat)
+    ent:setMass(sz*50)
+    if sz != 1 then
+        ent:emitSound(table.random(sporeSnd.eat), 65+(10*sz), 200-(30*sz))
+        ent:emitSound(table.random(sporeSnd.eatLayer), 65+(10*sz), 200-(30*sz))
+    end
+    ent:emitSound(table.random(sporeSnd.birth), 65+(10*sz), 200-(30*sz))
+    local newSpore = {
+        [ent] = {
+            ["ent"] = ent,
+            ["size"] = sz,
+            ["hp"] = sz*50,
+        }
+    }
+    table.merge(spores,newSpore)
+    timer.create("newSpore"..ent:entIndex(), thinkTime, 0, function()
+        sporeThink(ent)
+    end)
+    ent:addCollisionListener(function(colData, collider)
+        if infectedProps[colData.HitEntity] or !isValid(colData.HitEntity) then return end
+        if spores[colData.HitEntity] != nil then return end
+        if colData.HitEntity:isPlayer() then
+            if spores[ent].size > 1 then
+                if damage then
+                    colData.HitEntity:applyDamage(spores[ent].size, ent, ent, DAMAGE.DISSOLVE)
+                end
+                ent:emitSound(table.random(sporeSnd.bite), 65+(10*spores[ent].size), 200-(30*spores[ent].size))
+            end
+        else
+            if sz != 5 then
+                infectedProps[colData.HitEntity] = true
+                infectedLookUp[colData.HitEntity] = {
+                    ["color"] = colData.HitEntity:getColor(),
+                    ["material"] = colData.HitEntity:getMaterial()
+                }
+                if hasPermission("entities.setRenderProperty", colData.HitEntity) then
+                    colData.HitEntity:setColor(infectColor)
+                    colData.HitEntity:setMaterial(infectMat)
+                end
+                createSpore(ent, (spores[ent].size+1) )
+                sporeKill(ent)
+            end
+        end
+    end)
+end
+
+function sporeThink(ent)
+    local spore = spores[ent]
+    ent:getPhysicsObject():wake()
+    if spore.size > 1 and spore.size != 5 then
+        if math.random(0,15) == 0 then
+            timer.create("replicate"..ent:entIndex(), 1, 1, function()
+                if isValid(ent) then
+                    createSpore(ent,math.floor(spore.size/2))
+                    createSpore(ent,math.floor(spore.size/2))
+                    sporeKill(ent)
+                    timer.stop("replicate"..ent:entIndex())
+                end
+            end)
+        else
+            spore.ent:emitSound(table.random(sporeSnd.move), 65+(10*spore.size), 200-(30*spore.size))
+            spore.ent:getPhysicsObject():setVelocity(spore.ent:getVelocity()+Vector(math.random(-150,150),math.random(-150,150),150))
+        end
+    else
+        if spore.size != 5 then
+            spore.ent:emitSound(table.random(sporeSnd.move), 65+(10*spore.size), 200-(30*spore.size))
+            spore.ent:getPhysicsObject():setVelocity(spore.ent:getVelocity()+Vector(math.random(-150,150),math.random(-150,150),150))
+        else
+            if math.random(0,25) == 0 then
+                spore.ent:emitSound(table.random(sporeSnd.eatLayer), 65+(10*spore.size), 200-(30*spore.size))
+            end
+        end
+    end
+end
+
+function sporeKill(ent)
+    if !isValid(ent) then return end
+    timer.remove("newSpore"..ent:entIndex())
+    ent:remove()
+    spores[ent] = nil
+end
+
+createSpore(chip())
+
+hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force) 
+    if spores[target] == nil then return end
+    local spore = spores[target]
+    spore.hp = spore.hp-amount
+    timer.remove("newSpore"..spore.ent:entIndex())
+    timer.remove("unStun"..spore.ent:entIndex())
+    if spore.hp <= 0 then
+        spore.ent:emitSound(table.random(sporeSnd.die), 65+(10*spore.size), 200-(30*spore.size))
+        spore.ent:emitSound(table.random(sporeSnd.squish), 65+(10*spore.size), 200-(30*spore.size))
+        spore.ent:setCollisionGroup(COLLISION_GROUP.WORLD)
+        timer.simple(5,function()
+            sporeKill(spore.ent)
+        end)
+    else
+        spore.ent:emitSound(table.random(sporeSnd.pain), 65+(10*spore.size), 200-(30*spore.size))
+        timer.create("unStun"..spore.ent:entIndex(), 2.5, 1, function()
+            timer.create("newSpore"..spore.ent:entIndex(), thinkTime, 0, function()
+                sporeThink(spore.ent)
+            end)
+        end)
+    end
+end)
+
+hook.add("Removed", "", function() 
+    for k,v in pairs(infectedProps) do
+        if !isValid(k) then continue end
+        if hasPermission("entities.setRenderProperty", k) then
+            k:setColor(infectedLookUp[k].color)
+            k:setMaterial(infectedLookUp[k].material)
+        end
+    end
+end)
+hook.add("StarfallError", "", function(ent, ply, err) 
+    for k,v in pairs(infectedProps) do
+        if !isValid(k) then continue end
+        if hasPermission("entities.setRenderProperty", k) then
+            k:setColor(infectedLookUp[k].color)
+            k:setMaterial(infectedLookUp[k].material)
+        end
+    end
+end)

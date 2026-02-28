@@ -1,0 +1,48 @@
+--@name bunny hop b-hop bhop
+--@author .lynn
+--@server
+
+always = true -- once you start hopping you cant stop bopping
+friction = false -- this basically only works on servers you can toolgun yourself on, doesnt work on CFC (server i made this on)
+
+origFric = owner():getFriction()
+
+keys = {}
+
+hook.add("KeyPress", "", function(ply, key) 
+    if ply != owner() then return end
+    keys[key] = true
+    if keys[IN_KEY.JUMP] then
+        if friction then
+            owner():setFriction(0)
+        end
+    end
+end)
+
+hook.add("KeyRelease", "", function(ply, key) 
+    if ply != owner() then return end
+    keys[key] = false
+    if keys[IN_KEY.JUMP] then
+        if friction then
+            owner():setFriction(origFric)
+        end
+    end
+end)
+
+hook.add("OnPlayerHitGround", "", function(ply, inWater, onFloater, speed) 
+    if ply != owner() then return end
+    if !always then
+        if keys[IN_KEY.JUMP] then
+            owner():applyForce(Vector(0,0,250))
+        end
+    else
+        owner():applyForce(Vector(0,0,250))
+    end
+end)
+
+hook.add("Removed", "", function() 
+    owner():setFriction(origFric)
+end)
+hook.add("StarfallError", "", function(ent, ply, err) 
+    owner():setFriction(origFric)
+end)

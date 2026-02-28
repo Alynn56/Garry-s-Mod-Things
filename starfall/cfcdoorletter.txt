@@ -1,0 +1,25 @@
+--@name cfcDoorLetter
+--@author .lynn
+--@server
+
+-- BARE IN MIND THIS ONLY WORKS ON CFC (OR SERVERS WITH PLAYER:isInBuild() FUNCTION)
+
+blacklist = {
+    --"STEAM_0:0:00000000",
+}
+
+door = chip():isWeldedTo()
+
+door:addCollisionListener(function(coll)
+    if coll.HitEntity:isPlayer() then
+        local ply = coll.HitEntity
+        if ply:isInBuild() then --CFC only function!!!!!!!!!!!!!!!!!!!!!!
+            if !blacklist[ply:getSteamID()] then
+                door:setNocollideAll(true)
+                timer.simple(1,function()
+                    door:setNocollideAll(false)
+                end)
+            end
+        end
+    end
+end, "doorLetter")

@@ -1,0 +1,190 @@
+--@name fpvDrone
+--@author .alynn
+--@shared
+--@model models/hunter/plates/plate025x025.mdl
+--@include https://raw.githubusercontent.com/Jacbo1/Public-Starfall/main/SafeNet/safeNet.lua as SafeNet
+--@include https://raw.githubusercontent.com/thegrb93/MyStarfallScripts/master/libs/xinput.txt as XInputNet
+--@include lib/holoLib.txt
+--https://github.com/Jacbo1/Public-Starfall/tree/main/SafeNet
+local net = require( "SafeNet" )
+require( "XInputNet" )
+
+-- THIS REQUIRES THE XINPUT LIBRARY (CHECK STARFALL LIBRARY FOR INFO)
+
+grav = 0.5
+
+volume = 0.1
+
+maxYLDeadZone = 500
+minYLDeadZone = -5500
+maxXLDeadZone = 5000
+minXLDeadZone = -5000
+
+maxYRDeadZone = 7500
+minYRDeadZone = -7500
+maxXRDeadZone = 7500
+minXRDeadZone = -7500
+
+maxThumb = 32767
+minThumb = -32767
+speedClamp = 500
+moveSpeed = 5000 -- DIVISION
+moveDampen = 1.025
+turnSpeed = 2500 --NOT HOW FAST IT GOES, HOW MUCH IT DIVIDES, DEFAULT 10000000
+turnDampen = 0.9
+
+if SERVER then
+    require( "lib/holoLib.txt" )
+    con = {}
+    
+    softRumble = 0
+    hardRumble = 0
+    rumbling = false
+    
+    --hologram
+    chip():setColor(Color(0,0,0,0))
+    holoLib.createHolo(chip():getPos(),chip():getAngles(),"models/props_phx/construct/metal_wire1x1.mdl",Vector(0.15),Color(255,255,255),"",chip())
+    holoLib.createHolo(chip():getPos(),chip():getAngles(),"models/spacecode/sfchip.mdl",Vector(1),Color(255,255,255),"",chip())
+    
+    holoLib.createHolo(chip():localToWorld(Vector(-2.5,2.5,0)),chip():localToWorldAngles(Angle(0,45,0)),"models/phxtended/bar1x.mdl",Vector(0.15),Color(255,255,255),"",chip())
+    holoLib.createHolo(chip():localToWorld(Vector(2.5,2.5,0)),chip():localToWorldAngles(Angle(0,-45,0)),"models/phxtended/bar1x.mdl",Vector(0.15),Color(255,255,255),"",chip())
+    holoLib.createHolo(chip():localToWorld(Vector(-2.5,-2.5,0)),chip():localToWorldAngles(Angle(0,135,0)),"models/phxtended/bar1x.mdl",Vector(0.15),Color(255,255,255),"",chip())
+    holoLib.createHolo(chip():localToWorld(Vector(2.5,-2.5,0)),chip():localToWorldAngles(Angle(0,-135,0)),"models/phxtended/bar1x.mdl",Vector(0.15),Color(255,255,255),"",chip())
+    
+    fan1 = holoLib.createHolo(chip():localToWorld(Vector(-7.5,7.5,0.75)),chip():localToWorldAngles(Angle(0,0,0)),"models/props_phx/misc/propeller3x_small.mdl",Vector(0.1),Color(255,255,255),"",chip())
+    fan2 = holoLib.createHolo(chip():localToWorld(Vector(7.5,7.5,0.75)),chip():localToWorldAngles(Angle(0,0,0)),"models/props_phx/misc/propeller3x_small.mdl",Vector(0.1),Color(255,255,255),"",chip())
+    fan3 = holoLib.createHolo(chip():localToWorld(Vector(-7.5,-7.5,0.75)),chip():localToWorldAngles(Angle(0,0,0)),"models/props_phx/misc/propeller3x_small.mdl",Vector(0.1),Color(255,255,255),"",chip())
+    fan4 = holoLib.createHolo(chip():localToWorld(Vector(7.5,-7.5,0.75)),chip():localToWorldAngles(Angle(0,0,0)),"models/props_phx/misc/propeller3x_small.mdl",Vector(0.1),Color(255,255,255),"",chip())
+    
+    timer.simple(1,function()
+        xinput.setListeners(owner(), "bLeftTrigger bRightTrigger sThumbLX sThumbLY sThumbRX sThumbRY", true)
+        safeNet.start("init")
+        safeNet.send(owner())
+    end)
+    
+    hook.add("xinput","",function(ply, data)
+        --printConsole(data.sThumbLY)
+        con = data
+    end)
+    snd = sound.create(chip(), "npc/manhack/mh_engine_loop2.wav")
+    snd:play()
+    snd:setVolume(volume)
+    timer.simple(1,function()
+        hook.add("Think", "", function() 
+            local rotat = fan1:getAngles()[2]
+            fan1:setAngles(chip():localToWorldAngles(Angle(0,rotat+25,0))) 
+            fan2:setAngles(chip():localToWorldAngles(Angle(0,rotat+25,0))) 
+            fan3:setAngles(chip():localToWorldAngles(Angle(0,rotat+25,0))) 
+            fan4:setAngles(chip():localToWorldAngles(Angle(0,rotat+25,0)))
+            
+            if con.sThumbLY != nil and (con.sThumbLY > maxYLDeadZone or con.sThumbLY < minYLDeadZone) then
+                softRumble = (con.sThumbLY/4)/maxThumb
+                local vel = chip():getVelocity()
+                local ang = chip():getAngles()
+                local pitch = ang[1]
+                local roll = ang[3]
+                local thrust = con.sThumbLY/moveSpeed
+                chip():getPhysicsObject():setVelocity((chip():getVelocity()*moveDampen)+(chip():getUp()*Vector(1,1,9))+(chip():getUp()*thrust))
+            else
+                softRumble = 0
+                chip():getPhysicsObject():setVelocity((chip():getVelocity()*0.9)+(chip():getUp()*Vector(1,1,9)))
+            end
+            
+            if con.sThumbLY != nil then
+                snd:setPitch( 100+(math.abs(con.sThumbLY)*0.00473036897) )
+            end
+            
+            if con.sThumbLX != nil and con.sThumbRX != nil and con.sThumbRY != nil and con.bLeftTrigger != nil and con.bRightTrigger != nil and ((con.bLeftTrigger > 0) or (con.bRightTrigger > 0) or (con.sThumbLX > maxXLDeadZone or con.sThumbLX < minXLDeadZone) or (con.sThumbRX > maxXRDeadZone or con.sThumbRX < minXRDeadZone) or (con.sThumbRY > maxYRDeadZone or con.sThumbRY < minYRDeadZone) ) then
+                --local allowLX = (con.sThumbLX > maxXLDeadZone or con.sThumbLX < minXLDeadZone) and -con.sThumbLX/turnSpeed or (
+                local allowLX = ((con.bLeftTrigger-con.bRightTrigger)*128.49803922)/turnSpeed
+                local allowRX = (con.sThumbRX > maxXRDeadZone or con.sThumbRX < minXRDeadZone) and -con.sThumbRX/turnSpeed or 0
+                local allowRY = (con.sThumbRY > maxYRDeadZone or con.sThumbRY < minYRDeadZone) and -con.sThumbRY/turnSpeed or 0
+                local vec = Vector(allowRX,allowRY,allowLX)
+                --vec:rotate(chip():getAngles())
+                chip():getPhysicsObject():setAngleVelocity( (chip():getAngleVelocity()*turnDampen) + vec )
+            end
+            
+            if softRumble > 0 or hardRumble > 0 then
+                rumbleUpdate()
+            elseif rumbling then
+                rumbleUpdate(false)
+            end
+        end)
+    end)
+    
+    function rumbleUpdate(rmb)
+        local rmb = rmb or true
+        safeNet.start("rumble")
+            safeNet.writeFloat(math.max(softRumble,0))
+            safeNet.writeFloat(math.max(hardRumble,0))
+        safeNet.send(owner())
+        rumbling = rmb
+    end
+    
+    hook.add("PlayerSay", "", function(ply, text, teamChat) 
+        if ply != owner() then return end
+        if text == ".enter" then
+            safeNet.start("fpv")
+                safeNet.writeBool(true)
+            safeNet.send(owner())
+            print("Entered FPV")
+            return false
+        end
+        if text == ".exit" then
+            safeNet.start("fpv")
+                safeNet.writeBool(false)
+            safeNet.send(owner())
+            print("Exited FPV")
+            return false
+        end
+        if text == ".flip" then
+            print("Flipped FPV")
+            chip():setAngles(chip():localToWorldAngles(Angle(0,0,180)))
+            return false
+        end
+    end)
+else
+    if player() != owner() then return end
+    
+    safeNet.receive("init",function()
+        local rumble = 0
+        timer.create("rumble", 0.01, 25, function()
+            rumble = rumble+0.025
+            xinput.setRumble(0, rumble, rumble)
+        end)
+        timer.simple(0.5, function()
+            xinput.setRumble(0, 0, 0)
+            timer.simple(0.5,function()
+                print("FPV Initialized!")
+            end)
+        end)
+    end)
+    
+    fpvCam = false
+    
+    safeNet.receive("fpv",function()
+        fpvCam = safeNet.readBool()
+        if fpvCam then
+            enableHud(owner(),true)
+        end
+    end)
+    
+    hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+        if fpvCam then
+            local tab = {
+                ["origin"] = chip():localToWorld(Vector(-5,0,0)),
+                ["angles"] = chip():localToWorldAngles(Angle(0,180,0)),
+                ["fov"] = fov, 
+                ["znear"] = znear, 
+                ["zfar"] = zfar
+            }
+            return tab
+        end
+    end)
+    
+    safeNet.receive("rumble",function()
+        local soft = safeNet.readFloat()
+        local hard = safeNet.readFloat()
+        xinput.setRumble(0, soft, hard)
+    end)
+end

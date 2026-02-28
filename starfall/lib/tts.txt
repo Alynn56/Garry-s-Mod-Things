@@ -1,0 +1,87 @@
+--@name tts
+--@author .alynn
+--@shared
+--@include lib/easy_bass.txt
+
+tts = tts or {}
+
+--https://gist.github.com/JT5D/a2fdfefa80124a06f5a9
+
+--en-ca
+
+--language = "uk"
+
+if SERVER then
+    function tts.speak_sv( text, ent, language, pitch, func)
+        local ent = ent or chip()
+        local language = language or "en"
+        local pitch = pitch or 1
+        net.start("ttsSpeakSv")
+            net.writeString(text)
+            net.writeEntity(ent)
+            net.writeString(language)
+            net.writeFloat(pitch)
+        net.send()
+    end
+else
+    require( "lib/easy_bass.txt" )
+    
+    net.receive("ttsSpeakSv",function()
+        local text = net.readString()
+        local ent = net.readEntity()
+        local lang = net.readString()
+        local pitch = net.readFloat()
+        ent = ent or chip()
+        lang = lang or "en"
+        pitch = pitch or 1
+        tts.speak(text, ent, lang, pitch)
+    end)
+    
+    function tts.speak( text, ent, language, pitch )
+        
+        local ent = ent or chip()
+        
+        local language = language or "en"
+        
+        local pitch = pitch or 1
+    
+        local urlGoogle = "https://translate.google.com/translate_tts?ie=UTF-8&tl="..language.."&client=tw-ob&q="
+        
+        
+        easyBass.loadURL( urlGoogle..http.urlEncode(text),
+            {
+                Flags = "3d stereo noblock noplay",
+                Volume = 1,
+                Pitch = pitch,
+                FadeStart = 700,
+                FadeEnd = 2000,
+                FadeIn = 0,
+                FadeOut = 0,
+                Duration = nil,
+                Target = ent,
+                Loop = false,
+                DestroyWhenDone = true,
+                StaleThreshold = 30,
+                NoPlay = false,
+            },
+            function( x )
+                bassObj = x
+            end
+        )
+        
+        
+        --[[
+        bass.loadURL(urlGoogle..http.urlEncode(text), "3d noblock", function(bassobject,err,errcode)
+            if err == 0 then
+                bassobject:setPos(chip():getPos())
+                bassobject:setLooping(false)
+                bassobject:setFade(500, 1000, true)
+                bassobject:setPitch(pitch*100)
+                bassObj = bassobject
+            end
+        end)
+        
+        return bassObj
+        ]]
+    end
+end

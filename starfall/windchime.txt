@@ -1,0 +1,22 @@
+--@name windChime
+--@author .alynn
+--@server
+
+chimes = {
+    "ambient/levels/canals/windchime2.wav",
+    "ambient/levels/canals/windchime4.wav",
+    "ambient/levels/canals/windchime5.wav",
+    "ambient/levels/canals/windchine1.wav"
+}
+E = chip():isWeldedTo()
+hook.add("Tick", "", function() 
+    E:setVelocity(E:getVelocity()/2)
+    E:setAngleVelocity(E:getAngleVelocity()/2)
+    if chip():getVelocity():getLength() > 15 then
+        if !timer.exists("chime") then
+            chip():emitSound(table.random(chimes), 50, math.random(85,115))
+            timer.create("chime", 5, 1, function()
+            end)
+        end
+    end
+end)

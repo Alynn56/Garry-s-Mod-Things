@@ -1,0 +1,42 @@
+--@name holoLib
+--@author .alynn
+--@shared
+
+holoLib = holoLib or {}
+
+--holoLib.createHolo(Vector(),Angle(),"model",Vector(1),Color(255,255,255),"material",chip(),0)
+--holoLib.createHoloLocalToWorld(Vector(),Angle(),"model",Vector(1),Color(255,255,255),"material",chip(),0)
+
+E = chip()
+
+function holoLib.createHolo(vec,ang,model,scale,color,mat,parent,cull)
+    local vec = vec or Vector(0)
+    local ang = ang or Angle(0)
+    local scale = scale or Vector(1)
+    local color = color or Color(255,255,255)
+    local mat = mat or ""
+    local parent = parent or E
+    local cull = cull or 0
+    local holo = hologram.create(vec, ang, model, scale)
+    holo:setParent(parent)
+    holo:setColor(color)
+    holo:setMaterial(mat)
+    holo:setCullMode(cull)
+    return holo
+end
+
+function holoLib.createHoloLocalToWorld(vec,ang,model,scale,color,mat,parent,cull)
+    local vec = vec or Vector(0)
+    local ang = ang or Angle(0)
+    local scale = scale or Vector(1)
+    local color = color or Color(255,255,255)
+    local mat = mat or ""
+    local parent = parent or E
+    local cull = cull or 0
+    local holo = hologram.create(parent:localToWorld(vec), parent:localToWorldAngles(ang), model, scale)
+    holo:setParent(parent)
+    holo:setColor(color)
+    holo:setMaterial(mat)
+    holo:setCullMode(cull)
+    return holo
+end

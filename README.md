@@ -4,3 +4,8 @@ Stuff I do in GMod that people can duplicate (as long as they dont like, y'know,
 Stuff WILL be WIP / unfinished, and i WILL be updating them at my own pace (probably never, but whaddya know)
 
 also this code is probably absolutely abysmal, so. yeah. probably unoptimized to hell.
+
+
+Libraries used that aren't mine:
+Easy Bass ( https://github.com/legokidlogan/starfall_scripts/blob/main/lkl/easy_bass.txt )
+[Lib] WinGUI ( https://github.com/StyledStrike/starfall-wingui )

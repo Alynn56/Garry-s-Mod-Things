@@ -1,0 +1,116 @@
+--@name tileInfection
+--@author .alynn
+--@server
+--@model models/hunter/plates/plate025x025.mdl
+
+models = {
+    ["phx"] = {"models/hunter/plates/plate025x025.mdl",11.8625},
+    ["sprop"] = {"models/sprops/rectangles_superthin/size_1_5/rect_6x6.mdl", 6.0},
+}
+
+model = models["phx"]
+mat = "models/props_debris/tilefloor001c"
+
+thinkSpeed = 1
+thinkRndSpeed = 0.9 -- how much it will add/subtract at random for speed
+thinkReps = 0 -- 0 = infinite
+
+noRetreat = true
+
+sndList = {
+    "physics/concrete/rock_impact_soft1.wav",
+    "physics/concrete/rock_impact_soft2.wav",
+    "physics/concrete/rock_impact_soft3.wav"
+}
+sndLevel = 50
+sndPitch = 50
+sndPitchRandom = 5
+sndVol = 1
+sndDSP = 0
+
+zRandHeight = 1 -- + or - the num
+
+function rngDir(ent)
+    local rng = {math.random(-1,1),math.random(-1,1)}
+    if ent != chip() and noRetreat then
+        local dirVec = ent:getPos()-chip():getPos()
+        local vecX = dirVec[1]/math.abs(dirVec[1])
+        if vecX != vecX then
+            vecX = 0
+        end
+        local vecY = dirVec[2]/math.abs(dirVec[2])
+        if vecY != vecY then
+            vecY = 0
+        end
+        if vecX > 0 then
+            rng[1] = math.random(0,vecX)
+        else
+            rng[1] = math.random(vecX,0)
+        end
+        if vecY > 0 then
+            rng[2] = math.random(0,vecY)
+        else
+            rng[2] = math.random(vecY,0)
+        end
+        --printTable(rng)
+        return rng
+    else
+        if rng[1] == 0 and rng[2] == 0 then
+            return rngDir(ent)
+        else
+            return rng
+        end
+    end
+end
+
+function spawn(base)
+    local rng = rngDir(base)
+    local dirX = rng[1]*model[2]
+    local dirY = rng[2]*model[2]
+    for k,v in pairs(tiles) do
+        --if type(v) != "Entity" then continue end
+        if base:localToWorld(Vector(dirX,dirY,0)):getDistance(k:getPos()) < (model[2]*0.9) then
+            tiles[base] = v+1
+            if v > 8 then
+                if base == chip() then
+                    print("removing chip")
+                    timer.remove("infectionThink"..base:entIndex())
+                    base:setColor(Color(0,255,0))
+                else
+                    timer.remove("infectionThink"..base:entIndex())
+                    printConsole("removing",k,timer.getTimersLeft())
+                    base:setColor(Color(255,255,0))
+                    --tiles[k] = nil
+                end
+            end
+            return
+        end
+    end
+    if timer.getTimersLeft() <= 0 then base:setColor(Color(0,0,255)) return end
+    if !prop.canSpawn() then base:setColor(Color(255,0,0)) return end
+    if prop.propsLeft() <= 0 then base:setColor(Color(0,0,0)) return end
+    base:setColor(255,255,255)
+    local chipHeight = chip():getPos()[3]
+    local rngHeight = chipHeight+math.rand(-zRandHeight,zRandHeight)
+    local localVector = base:localToWorld(Vector(dirX, dirY, 0))
+    local ent = prop.create(Vector(localVector[1],localVector[2],rngHeight), base:getAngles(), model[1], true)
+    ent:setMaterial(mat)
+    if sound.canEmitSound() then
+        ent:emitSound(table.random(sndList), sndLevel, math.random(sndPitch-sndPitchRandom,sndPitch+sndPitchRandom), sndVol, 0, sndDSP)
+    end
+    infectionInit(ent)
+end
+
+function infectionInit(ent)
+    tiles[ent] = 0
+    timer.create("infectionThink"..ent:entIndex(), math.rand(thinkSpeed-thinkRndSpeed,thinkSpeed+thinkRndSpeed), 0, function()
+        spawn(ent)
+    end)
+end
+
+tiles = {
+    [chip()] = 0
+}
+
+chip():setMaterial(mat)
+infectionInit(chip())

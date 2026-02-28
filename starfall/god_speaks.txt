@@ -1,0 +1,73 @@
+--@server
+--@model models/hunter/blocks/cube05x1x05.mdl
+
+voice = "ambient/levels/citadel/citadel_ambient_scream_loop1.wav"
+song = "ambient/levels/citadel/datatransmission04_loop.wav"
+hym = "ambient/levels/citadel/zapper_ambient_loop1.wav"
+
+voice = sound.create(chip(), voice)
+song = sound.create(chip(), song)
+hym = sound.create(chip(), hym)
+
+voice:setSoundLevel(140)
+song:setSoundLevel(140)
+hym:setSoundLevel(140)
+
+voice:play()
+song:play()
+hym:play()
+
+vol = 0.1
+voice:setVolume(vol)
+song:setVolume(vol)
+hym:setVolume(vol)
+
+holoBox = hologram.create(chip():localToWorld(Vector()), chip():localToWorldAngles(Angle()), "models/hunter/blocks/cube05x1x05.mdl", Vector(1))
+holoBox:setParent(chip())
+holoBox:setMaterial("phoenix_storms/gear")
+holoTop = hologram.create(chip():localToWorld(Vector(10.25,0,23.5)), chip():localToWorldAngles(Angle(90,0,0)), "models/hunter/triangles/05x05mirrored.mdl", Vector(1))
+holoTop:setParent(chip())
+holoTop:setMaterial("phoenix_storms/gear")
+holoTop:setColor(Color(200,150,0))
+
+holoInd1 = hologram.create(chip():localToWorld(Vector(-13,10,-5)), chip():localToWorldAngles(Angle()), "models/hunter/blocks/cube1x1x1.mdl", Vector(0.1))
+holoInd1:setParent(chip())
+holoInd1:setMaterial("phoenix_storms/gear")
+
+holoInd2 = hologram.create(chip():localToWorld(Vector(-13,0,-5)), chip():localToWorldAngles(Angle()), "models/hunter/blocks/cube1x1x1.mdl", Vector(0.1))
+holoInd2:setParent(chip())
+holoInd2:setMaterial("phoenix_storms/gear")
+
+holoInd3 = hologram.create(chip():localToWorld(Vector(-13,-10,-5)), chip():localToWorldAngles(Angle()), "models/hunter/blocks/cube1x1x1.mdl", Vector(0.1))
+holoInd3:setParent(chip())
+holoInd3:setMaterial("phoenix_storms/gear")
+
+chip():setMaterial("null")
+chip():setColor(Color(0,0,0,0))
+
+think = 0
+hook.add("Think", "", function()
+    if think < 100 then
+        think = think+0.1
+    end
+    
+    voiceI = math.rand(0, think)
+    songI = math.rand(0, think)
+    hymI = math.rand(0, think)
+    
+    holoInd1:setColor(Color(255-(2.5*voiceI),2.5*voiceI,0))
+    voice:setPitch(voiceI)
+    
+    holoInd2:setColor(Color(255-(2.5*songI),2.5*songI,0))
+    song:setPitch(songI)
+    
+    holoInd3:setColor(Color(255-(2.5*hymI),2.5*hymI,0))
+    hym:setPitch(hymI)
+    
+    if chip():isFrozen() then
+        if #find.allPlayers() > 0 then
+            local ply = find.closest(find.allPlayers(), chip():getPos()):getEyePos()
+            chip():setAngles( (chip():getPos()-ply):getAngle() )
+        end
+    end
+end)

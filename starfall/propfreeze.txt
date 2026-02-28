@@ -1,0 +1,16 @@
+--@name propFreeze
+--@author .alynn
+--@server
+
+time = 0.01
+
+hook.add("OnEntityCreated","propFreeze",function(ent)
+    if !ent:isValid() then return end
+    if ent:getOwner() != owner() then return end
+    if !ent:isValidPhys() then return end
+    timer.simple(time,function()
+        if isValid(ent) and hasPermission("entities.enableMotion",ent) then
+            ent:setFrozen(true)
+        end
+    end)
+end)

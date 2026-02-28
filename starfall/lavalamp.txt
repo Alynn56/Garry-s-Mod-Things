@@ -1,0 +1,163 @@
+--@name lavalamp
+--@author .alynn
+--@server
+--@include lib/hololib.txt
+require("lib/hololib.txt")
+
+--changeables
+metalMaterial = "phoenix_storms/metal_plate"        -- "phoenix_storms/metal_plate"
+metalColor = Color(255,255,255)                     -- Color(255,255,255)
+
+glassMaterial = "models/debug/debugwhite"           -- "models/debug/debugwhite"
+glassColor = Color(50,100,250,50)                   -- Color(50,100,250,50)
+
+lavaMaterial = "models/debug/debugwhite"            -- "models/debug/debugwhite"
+lavaColor = Color(255,100,50)                       -- Color(255,100,50)
+
+lavaOutlineMaterial = "models/debug/debugwhite"     -- "models/debug/debugwhite"
+lavaOutlineColor = Color(0,0,0)                     -- Color(0,0,0)
+
+spropSphere = true                                  -- true
+
+scale = 1.5                                           -- 1
+
+speed = 1                                           -- 1
+
+--end of changeables
+--stuff
+
+bottom1 = holoLib.createHoloLocalToWorld(Vector(0,0,4.5)*scale,Angle(),"models/hunter/tubes/tube4x4x2to2x2.mdl",Vector(0.1)*scale,metalColor,metalMaterial,chip(),0)
+bottom2 = holoLib.createHoloLocalToWorld(Vector(0,0,12.5)*scale,Angle(180,0,0),"models/hunter/tubes/tube4x4x2to2x2.mdl",Vector(0.1)*scale,metalColor,metalMaterial,chip(),0)
+
+--bottomglass
+bottomGlass = holoLib.createHoloLocalToWorld(Vector(0,0,12.75)*scale,Angle(180,0,0),"models/hunter/tubes/circle2x2.mdl",Vector(0.15)*scale,metalColor,metalMaterial,chip(),0)
+--glass
+glass = holoLib.createHoloLocalToWorld(Vector(0,0,31.49)*scale,Angle(),"models/hunter/tubes/tube4x4x2to2x2.mdl",Vector(0.1,0.1,0.3)*scale,glassColor,glassMaterial,chip(),1)
+glass:setRenderMode(RENDERMODE.WORLDGLOW)
+glass:suppressEngineLighting(true)
+glassTop = holoLib.createHoloLocalToWorld(Vector(0,0,45.5)*scale,Angle(),"models/hunter/misc/shell2x2a.mdl",Vector(0.1)*scale,metalColor,metalMaterial,chip(),0)
+
+local model = "models/hunter/misc/shell2x2a.mdl"
+if spropSphere then
+    model = ""
+end
+
+bubble1 = holoLib.createHoloLocalToWorld(Vector(0,0,45.5)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.05)*scale,lavaColor,lavaMaterial,chip(),0)
+bubble1:suppressEngineLighting(true)
+bubbleOutline1 = holoLib.createHoloLocalToWorld(Vector(0,0,0)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.0525)*scale,lavaOutlineColor,lavaOutlineMaterial,bubble1,1)
+bubbleOutline1:suppressEngineLighting(true)
+
+bubble2 = holoLib.createHoloLocalToWorld(Vector(0,0,45.5)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.05)*scale,lavaColor,lavaMaterial,chip(),0)
+bubble2:suppressEngineLighting(true)
+bubbleOutline2 = holoLib.createHoloLocalToWorld(Vector(0,0,0)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.0525)*scale,lavaOutlineColor,lavaOutlineMaterial,bubble2,1)
+bubbleOutline2:suppressEngineLighting(true)
+
+bubble3 = holoLib.createHoloLocalToWorld(Vector(0,0,45.5)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.05)*scale,lavaColor,lavaMaterial,chip(),0)
+bubble3:suppressEngineLighting(true)
+bubbleOutline3 = holoLib.createHoloLocalToWorld(Vector(0,0,0)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.0525)*scale,lavaOutlineColor,lavaOutlineMaterial,bubble3,1)
+bubbleOutline3:suppressEngineLighting(true)
+
+bubble4 = holoLib.createHoloLocalToWorld(Vector(0,0,45.5)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.05)*scale,lavaColor,lavaMaterial,chip(),0)
+bubble4:suppressEngineLighting(true)
+bubbleOutline4 = holoLib.createHoloLocalToWorld(Vector(0,0,0)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.0525)*scale,lavaOutlineColor,lavaOutlineMaterial,bubble4,1)
+bubbleOutline4:suppressEngineLighting(true)
+
+bubble5 = holoLib.createHoloLocalToWorld(Vector(0,0,45.5)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.05)*scale,lavaColor,lavaMaterial,chip(),0)
+bubble5:suppressEngineLighting(true)
+bubbleOutline5 = holoLib.createHoloLocalToWorld(Vector(0,0,0)*scale,Angle(),"models/sprops/geometry/sphere_144.mdl",Vector(0.0525)*scale,lavaOutlineColor,lavaOutlineMaterial,bubble5,1)
+bubbleOutline5:suppressEngineLighting(true)
+
+--[[
+holo1 = hologram.create(chip():getPos(), Angle(), "models/hunter/misc/shell2x2.mdl", Vector(1))
+holo1:setMaterial("models/debug/debugwhite")
+holo1:suppressEngineLighting(true)
+holo1:setParent(chip())
+
+holo2 = hologram.create(chip():getPos(), Angle(), "models/hunter/misc/shell2x2.mdl", Vector(-1.01))
+holo2:setMaterial("models/debug/debugwhite")
+holo2:setColor(Color(0,0,0))
+holo2:suppressEngineLighting(true)
+holo2:setParent(chip())
+]]
+
+bubble1iHeight = math.random(0,10000)
+bubble1iSin = math.random(0,10000)
+bubble1iCos = math.random(0,10000)
+
+bubble2iHeight = math.random(0,10000)
+bubble2iSin = math.random(0,10000)
+bubble2iCos = math.random(0,10000)
+
+bubble3iHeight = math.random(0,10000)
+bubble3iSin = math.random(0,10000)
+bubble3iCos = math.random(0,10000)
+
+bubble4iHeight = math.random(0,10000)
+bubble4iSin = math.random(0,10000)
+bubble4iCos = math.random(0,10000)
+
+bubble5iHeight = math.random(0,10000)
+bubble5iSin = math.random(0,10000)
+bubble5iCos = math.random(0,10000)
+
+hook.add("Think", "", function() 
+    bubble1iHeight = bubble1iHeight + math.rand(0,speed)
+    bubble1iSin = bubble1iSin + math.rand(0,speed)
+    bubble1iCos = bubble1iCos + math.rand(0,speed)
+    --bubble:setPos(chip():getPos() + Vector(0,0,30 + math.sin(bubble1iHeight/1000)*15) )
+    bubble1:setPos(chip():localToWorld(
+        Vector(
+            (math.sin(bubble1iSin/1000)*4) / math.max(2, math.sin(bubble1iHeight/1000)*15 )*scale,
+            (math.cos(bubble1iCos/1000)*4) / math.max(2, math.sin(bubble1iHeight/1000)*15 )*scale,
+            30 + math.sin(bubble1iHeight/1000)*15)*scale 
+        ) 
+    )
+    
+    bubble2iHeight = bubble2iHeight + math.rand(0,speed)
+    bubble2iSin = bubble2iSin + math.rand(0,speed)
+    bubble2iCos = bubble2iCos + math.rand(0,speed)
+    --bubble:setPos(chip():getPos() + Vector(0,0,30 + math.sin(bubble2iHeight/1000)*15) )
+    bubble2:setPos(chip():localToWorld(
+        Vector(
+            (math.sin(bubble2iSin/1000)*4) / math.max(2, math.sin(bubble2iHeight/1000)*15 )*scale,
+            (math.cos(bubble2iCos/1000)*4) / math.max(2, math.sin(bubble2iHeight/1000)*15 )*scale,
+            30 + math.sin(bubble2iHeight/1000)*15)*scale 
+        ) 
+    )
+    
+    bubble3iHeight = bubble3iHeight + math.rand(0,speed)
+    bubble3iSin = bubble3iSin + math.rand(0,speed)
+    bubble3iCos = bubble3iCos + math.rand(0,speed)
+    --bubble:setPos(chip():getPos() + Vector(0,0,30 + math.sin(bubble3iHeight/1000)*15) )
+    bubble3:setPos(chip():localToWorld(
+        Vector(
+            (math.sin(bubble3iSin/1000)*4) / math.max(2, math.sin(bubble3iHeight/1000)*15 )*scale,
+            (math.cos(bubble3iCos/1000)*4) / math.max(2, math.sin(bubble3iHeight/1000)*15 )*scale,
+            30 + math.sin(bubble3iHeight/1000)*15)*scale 
+        ) 
+    )
+    
+    bubble4iHeight = bubble4iHeight + math.rand(0,speed)
+    bubble4iSin = bubble4iSin + math.rand(0,speed)
+    bubble4iCos = bubble4iCos + math.rand(0,speed)
+    --bubble:setPos(chip():getPos() + Vector(0,0,30 + math.sin(bubble4iHeight/1000)*15) )
+    bubble4:setPos(chip():localToWorld(
+        Vector(
+            (math.sin(bubble4iSin/1000)*4) / math.max(2, math.sin(bubble4iHeight/1000)*15 )*scale,
+            (math.cos(bubble4iCos/1000)*4) / math.max(2, math.sin(bubble4iHeight/1000)*15 )*scale,
+            30 + math.sin(bubble4iHeight/1000)*15)*scale 
+        ) 
+    )
+    
+    bubble5iHeight = bubble5iHeight + math.rand(0,speed)
+    bubble5iSin = bubble5iSin + math.rand(0,speed)
+    bubble5iCos = bubble5iCos + math.rand(0,speed)
+    --bubble:setPos(chip():getPos() + Vector(0,0,30 + math.sin(bubble5iHeight/1000)*15) )
+    bubble5:setPos(chip():localToWorld(
+        Vector(
+            (math.sin(bubble5iSin/1000)*4) / math.max(2, math.sin(bubble5iHeight/1000)*15 )*scale,
+            (math.cos(bubble5iCos/1000)*4) / math.max(2, math.sin(bubble5iHeight/1000)*15 )*scale,
+            30 + math.sin(bubble5iHeight/1000)*15)*scale 
+        ) 
+    )
+end)

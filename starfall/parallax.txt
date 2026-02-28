@@ -1,0 +1,39 @@
+--@name parallax
+--@author .alynn
+--@client
+
+--if player() != owner() then return end
+
+holos = {}
+
+E = chip()
+
+parallax = Vector(0.01,0.5,0.01) -- 0 means it will move like a normal prop, 1 means it will stay the exact position as the player
+
+Scale = 1
+
+function createHolo(name,parallax,vec,ang,model,scale,mat,cull)
+    local pos = E:localToWorld(vec)
+    local holo = hologram.create(pos, E:localToWorldAngles(ang), model, scale)
+    holo:setParent(E)
+    holo:setCullMode(cull)
+    holo:setMaterial(mat)
+    holos[name] = holo
+    holos[name].parallax = parallax
+    holos[name].pos = pos
+end
+
+local radioParallax = Vector(0.01,0.5,0.01)
+--local radioParallax = Vector(0.75,0.75,0.75)
+createHolo("tower",radioParallax,Vector(0,0,0)*Scale,Angle(0,90,0),"models/props_silo/silo_tower01.mdl",Vector(0.05)*Scale,"",0)
+
+local buildingParallax = Vector(0.01,0.75,0.01)
+createHolo("building",buildingParallax,Vector(-500,0,200)*Scale,Angle(0,-110,0),"models/props_buildings/factory_skybox001a.mdl",Vector(1)*Scale,"",0)
+
+hook.add("Think", "parallaxThink", function()
+    for k,v in pairs(holos) do
+        local plyPos = player():getPos()
+        local subPos = plyPos - v.pos
+        v:setPos( v.pos + (subPos * v.parallax) )
+    end
+end)
