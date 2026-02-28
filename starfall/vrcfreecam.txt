@@ -1,0 +1,152 @@
+--@name vrcFreecam
+--@author .lynn
+--@shared
+--@include https://raw.githubusercontent.com/Jacbo1/Public-Starfall/main/SafeNet/safeNet.lua as SafeNet
+local net = require("SafeNet")
+
+camModel = "models/dav0r/camera.mdl"
+camOffset = Vector()
+camAngle = Angle()
+camScale = Vector(0.25)
+
+mouseSensitivity = 1
+defaultFOV = 100
+camSpeed = 5
+altMult = 0.1
+shiftMult = 5
+
+updateInterval = 0.1 -- in seconds
+lerpUpdate = 0.1
+
+camPos = chip():getPos()
+camAng = Angle()
+isInCam = false
+
+if SERVER then
+    cam = hologram.create(chip():localToWorld(camOffset), Angle(), camModel, camScale)
+    
+    net.receive("cameraUpdate",function()
+        camPos = net.readVector()
+        camAng = net.readAngle()
+    end)
+    
+    hook.add("Tick", "", function() 
+        cam:setPos(math.lerpVector(lerpUpdate, cam:getPos(), camPos))
+        cam:setAngles(math.lerpAngle(lerpUpdate, cam:getAngles(), camAng))
+    end)
+    
+    hook.add("PlayerSay", "", function(ply, text, team) 
+        if ply != owner() then return end
+        if text == ".cam" then
+            --print("Camera enabled.")
+            net.start("camSet")
+                net.writeBool(true)
+            net.send(owner())
+            return ""
+        end
+    end)
+end
+
+if CLIENT then
+    if player() != owner() then return end
+    plyCamPos = camPos
+    plyCamAng = camAng
+    ownerAng = camAng
+    mouseAng = Angle()
+    timer.create("camTimer", lerpUpdate, 0, function()
+        net.start("cameraUpdate")
+            net.writeVector(plyCamPos)
+            net.writeAngle(plyCamAng)
+        net.send()
+    end)
+    enableHud(owner(),true)
+    net.receive("camSet",function()
+        if !input.canLockControls() then
+            print("Can't enable camera yet! (Locked controls, unlocking in "..lastActive - timer.curtime())
+        else
+            print("Camera enabled.")
+            isInCam = net.readBool()
+            --enableHud(owner(),true)
+            input.lockControls(isInCam)
+        end
+    end)
+    
+    function key(bool,customOff,customOn)
+        local num = customOff or 0
+        if bool then
+            num = customOn or 1
+        end
+        return num
+    end
+    
+    keys = {}
+    scroll = defaultFOV
+    hook.add("InputPressed", "", function(button) 
+        keys[button] = true
+    end)
+    hook.add("InputReleased", "", function(button) 
+        keys[button] = false
+    end)
+    hook.add("MouseWheeled", "", function(delta)
+        if !input.isControlLocked() then return end
+        scroll = scroll - (delta*5)
+    end)
+    
+    hook.add("AdjustMouseSensitivity", "", function(defaultSensitivity, localFOV, defaultFOV)
+        if !input.isControlLocked() then return end
+        return 0.00000001
+    end)
+    
+    hook.add("MouseMoved", "", function(x, y)
+        mouseAng = Angle(y,-x,0)
+        mouseAng = mouseAng * mouseSensitivity * 1000000
+        ownerAng = ownerAng + (mouseAng*mouseSensitivity)
+        ownerAng = Angle(math.fmod(ownerAng.p,360),math.fmod(ownerAng.y,360),0)
+        printConsole(ownerAng)
+    end)
+    
+    hook.add("tick","",function()
+        if !isInCam then return end
+        local dir = {
+            key(keys[KEY.W]),
+            key(keys[KEY.S]),
+            key(keys[KEY.D]),
+            key(keys[KEY.A]),
+            key(keys[KEY.SPACE]),
+            key(keys[KEY.CTRL]),
+        }
+        
+        local shift = key(keys[KEY.SHIFT],1,shiftMult)
+        local alt = key(keys[KEY.R],1,altMult) -- alt disables locking :(
+        
+        --local moveDir = ownerAng--owner():getEyeAngles()
+        local angForward = ownerAng:getForward()
+        local angRight = ownerAng:getRight()
+        local angUp = ownerAng:getUp()
+        
+        local forward = (dir[1]-dir[2])*angForward*camSpeed*shift*alt
+        local right = (dir[3]-dir[4])*angRight*camSpeed*shift*alt
+        local up = (dir[5]-dir[6])*angUp*camSpeed*shift*alt
+        
+        plyCamPos = plyCamPos + (forward+right+up)
+        plyCamAng = ownerAng -- still eyeangles so why do a new eyeang
+        
+        if isInCam and !input.isControlLocked() then
+            isInCam = false
+            lastActive = timer.curtime()+10
+        end
+    end)
+    
+    hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+        if !isInCam then return end
+        local tab = {
+            ["origin"] = plyCamPos,
+            ["angles"] = ownerAng,
+            ["fov"] = scroll,
+            ["znear"] = znear, 
+            ["zfar"] = zfar,
+            ["drawviewer"] = true
+        }
+        return tab
+    end)
+end
