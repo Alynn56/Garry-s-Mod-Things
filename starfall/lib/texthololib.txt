@@ -1,0 +1,81 @@
+--@name textHoloLib
+--@author .lynn
+--@shared
+
+-- 2d screen code by by z3A3z STEAM_0:0:72644178 - with permission from them to put onto github
+-- i just put it into a library
+
+textHolo = textHolo or {}
+textHolo.rt = 0
+textHolo.holos = {}
+
+function textHolo.create(ScreenScale,text,textColor,font,outlineWidth,outlineColor,doAng,angYawOnly,pos,ang)
+    ScreenScale = ScreenScale or Vector()
+    text = text or ""
+    textColor = textColor or Color(255,255,255)
+    font = font or "Roboto"
+    outlineWidth = outlineWidth or 0
+    outlineColor = outlineColor or Color(0,0,0,0)
+    doAng = doAng or true
+    angYawOnly = angYawOnly or false
+    pos = pos or Vector()
+    ang = ang or Angle()
+    
+    local screen = hologram.create(chip():getPos(), Angle(0,0,0), "models/holograms/plane.mdl", ScreenScale)
+    textHolo.rt = textHolo.rt + 1
+    render.createRenderTarget("ScreenRT"..textHolo.rt)
+
+    local screenMat = material.create("UnlitGeneric")
+    screenMat:setTextureRenderTarget("$basetexture", "ScreenRT"..textHolo.rt)
+    screenMat:setInt("$flags", 2097152)
+
+    screen:setMaterial("!" .. screenMat:getName())
+    screen:suppressEngineLighting(true)
+
+    local myFont = render.createFont(font, 60, 700, true)
+    textHolo.holos[screen] = {
+        ["text"] = text, 
+        ["font"] = myFont, 
+        ["textColor"] = textColor, 
+        ["doAng"] = true,
+        ["angYawOnly"] = angYawOnly,
+        ["rt"] = textHolo.rt,
+        ["outlineWidth"] = outlineWidth,
+        ["outlineColor"] = outlineColor
+    }
+    return screen
+end
+
+hook.add("think", "ScreenFollow", function()
+    if not textHolo.holos or table.count(textHolo.holos) < 1 then return end
+    
+    for k,v in pairs(textHolo.holos) do
+        if not k then continue end
+        if !k:isValid() then continue end
+        if !v.doAng then continue end
+        local holo = k
+        local eyePos = render.getEyePos()
+        local dir = (eyePos - holo:getPos()):getNormalized()
+        local ang = dir:getAngle() + Angle(90, 0, 0)
+        if v.angYawOnly then
+            holo:setAngles(Angle(90,ang[2],0))
+        else
+            holo:setAngles(ang)
+        end
+    end
+end)
+
+hook.add("renderoffscreen", "DrawScreen", function()
+    for k,v in pairs(textHolo.holos) do
+        if not k then continue end
+        if !k:isValid() then continue end
+        local holo = k
+        render.selectRenderTarget("ScreenRT"..v.rt)
+        render.clear(Color(0, 0, 0, 0))
+        render.setFont(v.font)
+        render.setColor(v.textColor)
+        render.drawSimpleTextOutlined(512, 256, v.text, v.outlineWidth, v.outlineColor, 1, 1)
+        --render.drawSimpleText(512, 256, v.text, 1, 1)
+        render.selectRenderTarget()
+    end
+end)
