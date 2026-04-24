@@ -2,12 +2,15 @@
 --@author .lynn
 --@shared
 --@include https://raw.githubusercontent.com/Jacbo1/Public-Starfall/main/SafeNet/safeNet.lua as SafeNet
+--@include lib/textHoloLib.txt
 local net = require("SafeNet")
+require("lib/textHoloLib.txt")
 
-camModel = "models/dav0r/camera.mdl"
-camOffset = Vector()
+camModel = "models/Combine_Scanner.mdl"
+camOffset = Vector(-0.1,0,0)
 camAngle = Angle()
 camScale = Vector(0.25)
+camAnim = "idle"
 
 mouseSensitivity = 1
 defaultFOV = 100
@@ -18,21 +21,57 @@ shiftMult = 5
 updateInterval = 0.1 -- in seconds
 lerpUpdate = 0.1
 
+ScreenScale = Vector(2.2, 2.4, 2) 
+ScreenHeight = 20
+showInCam = true
+inCamScreenScale = ScreenScale*2 
+inCamScreenHeight = 22.5
+
+screenOutlineSize = 2.5
+screenOutlineColor = Color(255)
+inCamOutlineSize = 2.5
+inCamOutlineColor = Color(255)
+
+-- custom functions
+
+if CLIENT then
+    rgbSpeed = 90
+    rgbI = 0
+    hook.add("tick","rgb",function()
+        if !screen then return end
+        --local clr = Color(120+math.log(rgbI/(240/rgbSpeed))*120,240,120):hsvToRGB()
+        local clr = Color(rgbI*rgbSpeed,240,120):hsvToRGB()
+        screenOutline:setColor(Color(clr[1],clr[2],clr[3],255))
+        rgbI = rgbI + (1*game.getTickInterval())
+        if inCamCL then
+            inCamScreenOutline:setColor(Color(clr[1],clr[2],clr[3],255))
+        else
+            inCamScreenOutline:setColor(Color(clr[1],clr[2],clr[3],0))
+        end
+    end)
+end
+
+--
+
 camPos = chip():getPos()
 camAng = Angle()
 isInCam = false
 
 if SERVER then
     cam = hologram.create(chip():localToWorld(camOffset), Angle(), camModel, camScale)
+    cam:setAnimation(camAnim)
     
     net.receive("cameraUpdate",function()
         camPos = net.readVector()
         camAng = net.readAngle()
+        net.start("cameraUpdateCL")
+            net.writeVector(camPos)
+        net.send()
     end)
     
     hook.add("Tick", "", function() 
-        cam:setPos(math.lerpVector(lerpUpdate, cam:getPos(), camPos))
-        cam:setAngles(math.lerpAngle(lerpUpdate, cam:getAngles(), camAng))
+        cam:setPos(math.lerpVector(lerpUpdate, cam:localToWorld(camOffset), camPos))
+        cam:setAngles(math.lerpAngle(lerpUpdate, cam:getAngles()+camAngle, camAng))
     end)
     
     hook.add("PlayerSay", "", function(ply, text, team) 
@@ -45,108 +84,190 @@ if SERVER then
             return ""
         end
     end)
+    net.receive("inCamUpdate",function()
+        net.start("inCamUpdateCL")
+            net.writeBool(net.readBool())
+        net.send()
+    end)
 end
 
 if CLIENT then
-    if player() != owner() then return end
-    plyCamPos = camPos
-    plyCamAng = camAng
-    ownerAng = camAng
-    mouseAng = Angle()
-    timer.create("camTimer", lerpUpdate, 0, function()
-        net.start("cameraUpdate")
-            net.writeVector(plyCamPos)
-            net.writeAngle(plyCamAng)
-        net.send()
-    end)
-    enableHud(owner(),true)
-    net.receive("camSet",function()
-        if !input.canLockControls() then
-            print("Can't enable camera yet! (Locked controls, unlocking in "..lastActive - timer.curtime())
-        else
-            print("Camera enabled.")
-            isInCam = net.readBool()
-            --enableHud(owner(),true)
-            input.lockControls(isInCam)
+    if player() == owner() then
+        plyCamPos = camPos
+        plyCamAng = camAng
+        ownerAng = camAng
+        mouseAng = Angle()
+        timer.create("camTimer", lerpUpdate, 0, function()
+            net.start("cameraUpdate")
+                net.writeVector(plyCamPos)
+                net.writeAngle(plyCamAng)
+            net.send()
+        end)
+        enableHud(owner(),true)
+        net.receive("camSet",function()
+            if !input.canLockControls() then
+                print("Can't enable camera yet! (Locked controls, unlocking in "..lastActive - timer.curtime())
+            else
+                print("Camera enabled.")
+                isInCam = net.readBool()
+                --enableHud(owner(),true)
+                input.lockControls(isInCam)
+                net.start("inCamUpdate")
+                    net.writeBool(true)
+                net.send()
+            end
+        end)
+        
+        function key(bool,customOff,customOn)
+            local num = customOff or 0
+            if bool then
+                num = customOn or 1
+            end
+            return num
         end
-    end)
-    
-    function key(bool,customOff,customOn)
-        local num = customOff or 0
-        if bool then
-            num = customOn or 1
-        end
-        return num
+        
+        keys = {}
+        scroll = defaultFOV
+        hook.add("InputPressed", "", function(button) 
+            keys[button] = true
+        end)
+        hook.add("InputReleased", "", function(button) 
+            keys[button] = false
+        end)
+        hook.add("MouseWheeled", "", function(delta)
+            if !input.isControlLocked() then return end
+            scroll = scroll - (delta*5)
+        end)
+        
+        hook.add("AdjustMouseSensitivity", "", function(defaultSensitivity, localFOV, defaultFOV)
+            if !input.isControlLocked() then return end
+            return 0.00000001
+        end)
+        
+        hook.add("MouseMoved", "", function(x, y)
+            mouseAng = Angle(y,-x,0)
+            mouseAng = mouseAng * mouseSensitivity * 1000000
+            ownerAng = ownerAng + (mouseAng*mouseSensitivity)
+            ownerAng = Angle(math.fmod(ownerAng.p,360),math.fmod(ownerAng.y,360),0)
+            --printConsole(ownerAng)
+        end)
+        
+        hook.add("tick","",function()
+            if !isInCam then return end
+            local dir = {
+                key(keys[KEY.W]),
+                key(keys[KEY.S]),
+                key(keys[KEY.D]),
+                key(keys[KEY.A]),
+                key(keys[KEY.SPACE]),
+                key(keys[KEY.CTRL]),
+            }
+            
+            local shift = key(keys[KEY.SHIFT],1,shiftMult)
+            local alt = key(keys[KEY.R],1,altMult) -- alt disables locking :(
+            
+            --local moveDir = ownerAng--owner():getEyeAngles()
+            local angForward = ownerAng:getForward()
+            local angRight = ownerAng:getRight()
+            local angUp = ownerAng:getUp()
+            
+            local forward = (dir[1]-dir[2])*angForward*camSpeed*shift*alt
+            local right = (dir[3]-dir[4])*angRight*camSpeed*shift*alt
+            local up = (dir[5]-dir[6])*angUp*camSpeed*shift*alt
+            
+            plyCamPos = plyCamPos + (forward+right+up)
+            plyCamAng = ownerAng -- still eyeangles so why do a new eyeang
+            
+            if isInCam and !input.isControlLocked() then
+                isInCam = false
+                lastActive = timer.curtime()+10
+                net.start("inCamUpdate")
+                    net.writeBool(false)
+                net.send()
+            end
+        end)
+        
+        hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+            if !isInCam then return end
+            local tab = {
+                ["origin"] = plyCamPos,
+                ["angles"] = ownerAng,
+                ["fov"] = scroll,
+                ["znear"] = znear, 
+                ["zfar"] = zfar,
+                ["drawviewer"] = true
+            }
+            return tab
+        end)
     end
     
-    keys = {}
-    scroll = defaultFOV
-    hook.add("InputPressed", "", function(button) 
-        keys[button] = true
-    end)
-    hook.add("InputReleased", "", function(button) 
-        keys[button] = false
-    end)
-    hook.add("MouseWheeled", "", function(delta)
-        if !input.isControlLocked() then return end
-        scroll = scroll - (delta*5)
+    screenPos = chip():getPos()
+    
+    inCamCL = false
+    screen = textHolo.create(ScreenScale,owner():getName().."'s Freecam",Color(255,255,255),"Roboto",0,Color(),true,true,chip():localToWorld(camOffset)+Vector(0,0,ScreenHeight))
+    screenOutline = textHolo.create(ScreenScale,owner():getName().."'s Freecam",Color(255,255,255,0),"Roboto",screenOutlineSize,screenOutlineColor,true,true,chip():localToWorld(camOffset)+Vector(0,0,ScreenHeight))
+    inCamScreen = textHolo.create(inCamScreenScale,"In Freecam",Color(255,255,255),"Roboto",0,Color(),true,true,owner():getBonePosition(owner():lookupBone("head"))+Vector(0,0,inCamScreenHeight))
+    inCamScreenOutline = textHolo.create(inCamScreenScale,"In Freecam",Color(255,255,255,0),"Roboto",inCamOutlineSize,inCamOutlineColor,true,true,owner():getBonePosition(owner():lookupBone("head"))+Vector(0,0,inCamScreenHeight))
+    local clr = inCamScreen:getColor()
+    inCamScreen:setColor(Color(clr[1],clr[2],clr[3],0))
+    
+    net.receive("cameraUpdateCL",function()
+        screenPos = net.readVector()
     end)
     
-    hook.add("AdjustMouseSensitivity", "", function(defaultSensitivity, localFOV, defaultFOV)
-        if !input.isControlLocked() then return end
-        return 0.00000001
-    end)
-    
-    hook.add("MouseMoved", "", function(x, y)
-        mouseAng = Angle(y,-x,0)
-        mouseAng = mouseAng * mouseSensitivity * 1000000
-        ownerAng = ownerAng + (mouseAng*mouseSensitivity)
-        ownerAng = Angle(math.fmod(ownerAng.p,360),math.fmod(ownerAng.y,360),0)
-        printConsole(ownerAng)
-    end)
-    
-    hook.add("tick","",function()
-        if !isInCam then return end
-        local dir = {
-            key(keys[KEY.W]),
-            key(keys[KEY.S]),
-            key(keys[KEY.D]),
-            key(keys[KEY.A]),
-            key(keys[KEY.SPACE]),
-            key(keys[KEY.CTRL]),
-        }
-        
-        local shift = key(keys[KEY.SHIFT],1,shiftMult)
-        local alt = key(keys[KEY.R],1,altMult) -- alt disables locking :(
-        
-        --local moveDir = ownerAng--owner():getEyeAngles()
-        local angForward = ownerAng:getForward()
-        local angRight = ownerAng:getRight()
-        local angUp = ownerAng:getUp()
-        
-        local forward = (dir[1]-dir[2])*angForward*camSpeed*shift*alt
-        local right = (dir[3]-dir[4])*angRight*camSpeed*shift*alt
-        local up = (dir[5]-dir[6])*angUp*camSpeed*shift*alt
-        
-        plyCamPos = plyCamPos + (forward+right+up)
-        plyCamAng = ownerAng -- still eyeangles so why do a new eyeang
-        
-        if isInCam and !input.isControlLocked() then
-            isInCam = false
-            lastActive = timer.curtime()+10
+    net.receive("inCamUpdateCL",function()
+        inCamCL = net.readBool()
+        if inCamCL then
+            inCamScreen:setColor(Color(clr[1],clr[2],clr[3],255))
+        else
+            inCamScreen:setColor(Color(clr[1],clr[2],clr[3],0))
         end
     end)
     
-    hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
-        if !isInCam then return end
-        local tab = {
-            ["origin"] = plyCamPos,
-            ["angles"] = ownerAng,
-            ["fov"] = scroll,
-            ["znear"] = znear, 
-            ["zfar"] = zfar,
-            ["drawviewer"] = true
-        }
-        return tab
+    --[[
+    local ScreenScale = Vector(2.2, 2.4, 2) 
+    local ScreenHeight = 20 
+    
+    render.createRenderTarget("ScreenRT")
+    
+    local screenMat = material.create("UnlitGeneric")
+    screenMat:setTextureRenderTarget("$basetexture", "ScreenRT")
+    screenMat:setInt("$flags", 2097152)
+    
+    local screen = hologram.create(chip():getPos(), Angle(0,0,0), "models/holograms/plane.mdl", ScreenScale)
+    screen:setMaterial("!" .. screenMat:getName())
+    screen:suppressEngineLighting(true)
+    
+    local myFont = render.createFont("Roboto", 60, 700, true)
+    
+    hook.add("think", "ScreenFollow", function()
+        if not screen:isValid() then return end
+    
+        --screen:setPos(chip():getPos() + Vector(0, 0, ScreenHeight))
+    
+        local eyePos = render.getEyePos()
+        local dir = (eyePos - screen:getPos()):getNormalized()
+        screen:setAngles(dir:getAngle() + Angle(90, 0, 0))
     end)
+    
+    hook.add("renderoffscreen", "DrawScreen", function()
+        render.selectRenderTarget("ScreenRT")
+        render.clear(Color(0, 0, 0, 0))
+        render.setFont(myFont)
+        render.setColor(Color(255, 255, 255))
+        render.drawSimpleText(512, 256, owner():getName().."'s Freecam", 1, 1)
+        render.selectRenderTarget()
+    end)
+    ]]
+    
+    hook.add("Tick", "screenMove", function()
+        local scrPos = math.lerpVector(lerpUpdate, screen:getPos(), screenPos+Vector(0,0,5))
+        screen:setPos(scrPos)
+        screenOutline:setPos(screen:localToWorld(Vector(0,0,-0.025)))
+        local shootPos = owner():getBonePosition(owner():lookupBone("head")) --owner():getEyePos()
+        inCamScreen:setPos(shootPos+Vector(0,0,inCamScreenHeight))
+        inCamScreenOutline:setPos(inCamScreen:localToWorld(Vector(0,0,-0.025)))
+        --printConsole(shootPos)
+    end)
+
 end
